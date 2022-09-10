@@ -1,0 +1,54 @@
+# Instalando a lib yfinance
+!pip install yfinance
+
+# Fazendo os imports necessários
+import yfinance as yf
+import pandas as pd
+import numpy as np
+from functools import reduce
+
+# Criando o range de tempo
+
+inicio = "2021-09-10"
+fim = "2022-09-10"
+
+# Introduzindo a(o) carteira/portfólio
+
+ativos01 = ["CBAV3.SA", "PRIO3.SA", "ITUB4.SA", "ALUP11.SA", "RENT3.SA"]
+
+# Coletando os dados
+
+precos = yf.download(ativos01, start = inicio, end = fim)["Adj Close"]
+
+# Criando dicionário com o poertfólio pessoal (ativos e seus recpectivos valores)
+# No nosso exemplo, temos uma alocação de valores iguais em 5 diferentes ativos
+
+compras = {"CBAV3.SA": 5000,  "PRIO3.SA": 5000,  "ITUB4.SA": 5000, 
+           "ALUP11.SA": 5000, "RENT3.SA": 5000}
+
+compras_df = pd.Series(data = compras, index = list(compras.keys()))
+sum(compras.values())
+
+PL01 = precos*compras_df/(precos.iloc[0])
+PL01["Carteira 01"] = PL01.sum(axis = 1)
+
+# Coletando os dados do IBOV para comparação, com o mesmo espaço temporal.
+
+ibov = yf.download("^BVSP", start = inicio, end = fim)
+
+# Tratando os dados do IBOV coletados
+
+ibov.rename(columns = {"Adj Close": "IBOV"}, inplace = True)
+ibov = ibov.drop(ibov.columns[[0, 1, 2, 3, 5]], axis = 1)
+
+dfs = [PL01, ibov]
+df_final = reduce(lambda left, right: pd.merge(left, right, on = "Date"), dfs)
+
+# Normalizando os valores para que fiquem na mesma escala 
+
+df_final_normalizado = df_final/df_final.iloc[0]
+
+# Plotando o gráfico da comparação entre IBOV e carteira
+
+df_final_normalizado[["IBOV", "Carteira 01"]].plot(figsize = (10,10));
+
